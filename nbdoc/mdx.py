@@ -258,19 +258,40 @@ def _isShowDoc(cell):
     else: return False
 
 
+import uuid
+
+def generate_id():
+    return uuid.uuid4().hex
+
 class CleanShowDoc(Preprocessor):
-    """Ensure that ShowDoc output gets cleaned in the associated notebook."""
-    _re_html = re.compile(r'<HTMLRemove>.*</HTMLRemove>', re.DOTALL)
+    """Ensure that ShowDoc output gets cleaned in the associated notebook and converted to markdown."""
 
     def preprocess_cell(self, cell, resources, index):
-        "Convert cell to a raw cell with just the stripped portion of the output."
+        "Convert cell to a markdown cell with clean markdown output from ShowDoc."
         if _isShowDoc(cell):
             all_outs = [o['data'] for o in cell.outputs if 'data' in o]
-            html_outs = [o['text/html'] for o in all_outs if 'text/html' in o]
-            if len(html_outs) != 1:
-                return cell, resources
-            cleaned_html = self._re_html.sub('', html_outs[0])
-            cell = AttrDict({'cell_type':'raw', 'id':cell.id, 'metadata':cell.metadata, 'source':cleaned_html})
+            
+            # Look for text/plain output which should contain our markdown
+            text_outs = [o['text/html'] for o in all_outs if 'text/html' in o]
+            
+            if len(text_outs) >= 1:
+                # Use the first text output as our markdown content
+                markdown_content = text_outs[0]
+                # Remove any quotes that might wrap the output
+                if markdown_content.startswith("'") and markdown_content.endswith("'"):
+                    markdown_content = markdown_content[1:-1]
+                elif markdown_content.startswith('"') and markdown_content.endswith('"'):
+                    markdown_content = markdown_content[1:-1]
+                
+                # Convert to markdown cell
+                cell = AttrDict({'cell_type':'markdown', 'id':getattr(cell, 'id', generate_id()), 'metadata':cell.metadata, 'source':markdown_content})
+            else:
+                # Fallback: if no text output, try to extract from HTML output
+                html_outs = [o['text/html'] for o in all_outs if 'text/html' in o]
+                if len(html_outs) >= 1:
+                    # For backward compatibility, still handle HTML output but convert to raw
+                    cleaned_html = html_outs[0]
+                    cell = AttrDict({'cell_type':'raw', 'id':getattr(cell, 'id', generate_id()), 'metadata':cell.metadata, 'source':cleaned_html})
 
         return cell, resources
 

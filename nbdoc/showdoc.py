@@ -69,14 +69,15 @@ def _returns(docstring):
         else: return ''
     else: return ''
 
-def _returns_md(docstring):
+def _returns_md(docstring, heading_level=3):
     "Parse just the returns section for properties and return markdown."
     returns = _re_returns.findall(docstring)
     if returns:
         args = returns[0].split('\n    ')
         if len(args) == 2:
             typ, desc = args
-            return f'\n\n### Returns\n\n- **{typ}**: {desc}'
+            heading_prefix = '#' * heading_level
+            return f'\n\n{heading_prefix} Returns\n\n- **{typ}**: {desc}'
         else: return ''
     else: return ''
 
@@ -121,7 +122,7 @@ def np2md(obj, skip_sections='', heading_level=3):
     elif _is_func(obj) or inspect.ismethod(obj): doc = FunctionDoc(obj)
     else:
         _summary = inspect.getdoc(obj)
-        ret = _returns_md(_summary) # get the return section if present
+        ret = _returns_md(_summary, heading_level=heading_level) # get the return section if present
         summary = _re_returns.sub('', _summary) # get rid of the Returns
         return f'{_desc_md(summary)}{ret}'
 

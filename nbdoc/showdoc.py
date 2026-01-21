@@ -127,11 +127,31 @@ def np2md(obj, skip_sections='', heading_level=3):
         return f'{_desc_md(summary)}{ret}'
 
     # Build description from summary and extended summary (but not Examples)
+    # Preserve paragraph structure: blank lines in content indicate paragraph breaks
+    # Preserve indentation within paragraphs for lists, nested content, etc.
     desc_parts = []
     for a in ['Summary', 'Extended Summary']:
         content = doc[a]
         if content:
-            desc_parts.extend(content)
+            # Group consecutive non-empty lines into paragraphs
+            # Empty strings in content indicate paragraph breaks
+            # Preserve original lines (with indentation) within each paragraph
+            paragraphs = []
+            current_para = []
+            for line in content:
+                if line.strip() == '':
+                    # Blank line = paragraph break
+                    if current_para:
+                        paragraphs.append('\n'.join(current_para))
+                        current_para = []
+                else:
+                    current_para.append(line)
+            # Don't forget the last paragraph
+            if current_para:
+                paragraphs.append('\n'.join(current_para))
+            
+            if paragraphs:
+                desc_parts.append('\n\n'.join(paragraphs))
     
     desc_component = '\n\n'.join(desc_parts) if desc_parts else ''
 

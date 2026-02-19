@@ -89,10 +89,10 @@ class RmEmptyCode(Preprocessor):
 class MetaflowTruncate(Preprocessor):
     """Remove the preamble and timestamp from Metaflow output."""
     _re_pre = re.compile(r'([\s\S]*Metaflow[\s\S]*Validating[\s\S]+The graph[\s\S]+)(\n[\s\S]+Workflow starting[\s\S]+)')
-    _re_time = re.compile('\d{4}-\d{2}-\d{2}\s\d{2}\:\d{2}\:\d{2}.\d{3}')
+    _re_time = re.compile(r'\d{4}-\d{2}-\d{2}\s\d{2}\:\d{2}\:\d{2}.\d{3}')
 
     def preprocess_cell(self, cell, resources, index):
-        if re.search('\s*python.+run.*', cell.source) and 'outputs' in cell:
+        if re.search(r'\s*python.+run.*', cell.source) and 'outputs' in cell:
             for o in cell.outputs:
                 if o.name == 'stdout':
                     o['text'] = self._re_time.sub('', self._re_pre.sub(r'\2', o.text)).strip()
@@ -120,7 +120,7 @@ class MetaflowSelectSteps(Preprocessor):
     def preprocess_cell(self, cell, resources, index):
         root = cell.metadata.get('nbdoc', {})
         steps = root.get('show_steps', root.get('show_step'))
-        if re.search('\s*python.+run.*', cell.source) and 'outputs' in cell and steps:
+        if re.search(r'\s*python.+run.*', cell.source) and 'outputs' in cell and steps:
             for o in cell.outputs:
                 if o.name == 'stdout':
                     final_steps = []
@@ -228,7 +228,7 @@ class Black(Preprocessor):
 # Cell
 class CatFiles(Preprocessor):
     """Cat arbitrary files with %cat"""
-    pattern = '^\s*!'
+    pattern = r'^\s*!'
 
     def preprocess_cell(self, cell, resources, index):
         if cell.cell_type == 'code' and re.search(self.pattern, cell.source):
@@ -239,7 +239,7 @@ class CatFiles(Preprocessor):
 # Cell
 class BashIdentify(Preprocessor):
     """A preprocessor to identify bash commands and mark them appropriately"""
-    pattern = re.compile('^\s*!', flags=re.MULTILINE)
+    pattern = re.compile(r'^\s*!', flags=re.MULTILINE)
 
     def preprocess_cell(self, cell, resources, index):
         if cell.cell_type == 'code' and self.pattern.search(cell.source):
